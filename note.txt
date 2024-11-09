@@ -1,0 +1,984 @@
+const addedList = document.getElementById('addedList') as HTMLElement | null
+const addCardCategorySection = document.getElementById('addCardCategorySection') as HTMLElement | null
+const createdNotes = document.getElementById('createdNotes') as HTMLElement | null
+const listError = document.getElementById('listError') as HTMLElement | null
+const addListInput = document.getElementById('addListInput') as HTMLInputElement | null
+const addedNotes = document.getElementById('addedNotes') as HTMLInputElement | null
+
+const date: Date = new Date();
+
+
+function convertDateTimeToDDMMYYYY(dateTime: any): string {
+    const date: Date = new Date(dateTime);
+    // const dates = new Date();
+    const today = new Date();
+    const hours: number = date.getHours();
+    const minutes: number = date.getMinutes();
+    const formattedHours: string = hours.toString();
+    const formattedMinutes: string = minutes.toString();
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+        return `Today ${formattedHours}:${formattedMinutes}`;
+    } else if (date.toDateString() === yesterday.toDateString()) {
+        return `Yesterday ${formattedHours}:${formattedMinutes}`;
+    } else {
+        const dd: string = String(date.getDate());
+        const mm: string = String(date.getMonth() + 1);
+        const yyyy: number = date.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+    }
+}
+
+function getRandomColor(): string {
+    const letters: string = "0123456789ABCDEF";
+    let color: string = "#";
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
+interface CategoryData {
+    categoryName: string,
+    id: string,
+}
+
+interface CreateCard {
+    categoryName: string,
+    id: string,
+    color: string,
+    date: string
+}
+
+
+
+const sendData = async (value: string) => {
+    const categoryName: string = value;
+    const res = fetch('http://localhost:3000/categoryList', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryName })
+    });
+    (await res).json();
+}
+
+const createCardSendData = async (value: string, color: string, date: number) => {
+    const categoryName: { categoryName: string, date: number, color: string } = {
+        categoryName: value,
+        color: color,
+        date: date
+    };
+    const res = fetch('http://localhost:3000/createdCard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(categoryName)
+    });
+    (await res).json();
+}
+
+
+// const editData = async (date: number, color: string, id: string) => {
+//     const categoryUpadate: { date: number, color: string } = {
+//         date: date,
+//         color: color
+//     };
+//     const res = fetch(`http://localhost:3000/categoryList/${id}`, {
+//         method: 'PATCH',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(categoryUpadate)
+//     });
+//     (await res).json();
+// }
+
+
+const getData = async () => {
+    const res = await fetch('http://localhost:3000/categoryList');
+    const data = await res.json();
+    return data
+}
+// getData()
+//     .then(data => {
+//         console.log(data);
+//     })
+
+const getCreateCardData = async () => {
+    const res = await fetch('http://localhost:3000/createdCard');
+    const data = await res.json();
+    return data
+}
+// getCreateCardData()
+//     .then(data => {
+//         console.log(data);
+//     })
+
+const addList = (e: HTMLElement): void => {
+    if (addListInput) {
+        if (addListInput.value.trim()) {
+            if (addedList) {
+                addedList.innerHTML = `
+                  <div class="added-list">
+                      <p class="added-list-name" id="listName">${addListInput.value}<button class="added-list-remove-btn" onclick='addListRemove(this)'><i class="fa-solid fa-xmark"></i></button></p>
+                  </div> `
+            }
+        }
+    }
+}
+
+const addListRemove = (e: HTMLElement): void => {
+    const rmvBtn = e.parentElement as HTMLElement
+    rmvBtn.parentElement?.remove()
+}
+
+const confirmList = (e: HTMLElement): void => {
+    const listName = document.getElementById('listName') as HTMLElement | null;
+    if (addListInput)
+        if (!addListInput.value.trim() && !listName?.innerText) {
+            if (listError) {
+                listError.innerHTML = 'Please Enter the category list';
+            }
+        } else {
+            if (listName?.innerText) {
+                getData()
+                    .then(data => {
+                        const categoryData: CategoryData[] = data;
+                        const findData = categoryData.find(item => item.categoryName === listName.innerText);
+                        if (!findData) {
+                            sendData(listName?.innerText);
+                            if (listError)
+                                listError.innerHTML = '';
+                        } else {
+                            if (listError)
+                                listError.innerHTML = 'Category name already exist!';
+                        }
+                    });
+            }
+            if (listError) {
+                listError.innerHTML = '';
+            }
+        }
+}
+
+
+const addNotes = (e: HTMLElement): void => {
+    if (createdNotes) {
+        createdNotes.innerHTML = `
+        <div class="notes-headers-section">
+            <div class="notes-category-section">
+                <label for="categoryList" class="notes-category-label">#</label>
+                <select name="categoryList" id="categoryList" class="notes-category-name" onchange="createNoteCard(this)">
+                    <option hidden></option>
+                </select>
+                <div class="notes-time-section">
+                    <p class="note-time">hello welcome</p>
+                    <p class="note-time" id="notesCreateTime"></p>
+                </div>
+            </div>
+        </div>
+
+            <div class="notes-details-section">
+                <input type="text" name="" id="" class="notes-heading-input-section"
+                    placeholder="Add your notes heading here.">
+                <div class="notes-details">
+                    <textarea id="w3review" class="notes-information"  name="w3review"
+                        placeholder="Add your notes here."></textarea>
+                </div>
+            </div> `
+    }
+    addCategoryOption();
+}
+
+
+
+const addCategoryList = (): void => {
+    getData()
+        .then((data: CategoryData[]) => {
+            const categoryData: CategoryData[] = data;
+            if (addCardCategorySection) {
+                addCardCategorySection.innerHTML = "";
+                categoryData.map((value: CategoryData) => {
+                    addCardCategorySection.innerHTML += `
+                    <div class="add-card-category">
+                        <p class="add-card-category-name"># ${value.categoryName}</p>
+                        <p class="add-card-category-count">0</p>
+                    </div> `
+                })
+            }
+        })
+}
+addCategoryList();
+
+
+const addCategoryOption = (): void => {
+    getData()
+        .then((data: CategoryData[]) => {
+            const categoryList = document.getElementById('categoryList') as HTMLElement | null;
+            const categoryData: CategoryData[] = data;
+            if (categoryList) {
+                // categoryList.innerHTML = "";
+                categoryData.map((value: CategoryData) => {
+                    categoryList.innerHTML += `<option>${value.categoryName}</option>`
+                })
+            }
+        });
+}
+
+
+const createNoteCard = (e: HTMLElement) => {
+    createCardSendData((e as HTMLInputElement).value, getRandomColor(), date.getTime());
+
+    // const notesCreateTime = document.getElementById('notesCreateTime') as HTMLInputElement | null
+    // (e as HTMLElement).setAttribute("disabled", "disabled");
+    // (notesCreateTime) ? notesCreateTime.innerText = convertDateTimeToDDMMYYYY(date.getTime()) : "";
+}
+
+
+const shawCard = (): void => {
+    getCreateCardData()
+        .then((data: CreateCard[]) => {
+            console.log(data);
+            data.map((item: CreateCard, index) => {
+                if (addedNotes)
+                    addedNotes.innerHTML += `
+                                <div class="add-notes-card" id="${index}" onclick="createdCard(this)" draggable="true">
+                                    <h5 class="add-notes-card-heading">hello welcome</h5>
+                                    <p class="add-notes-card-details">Search bars are the elements that we use to enter search queries.
+                                        Typically, you enter a question and hit a search button. Then you get search results pages based
+                                        on the query that you typed.Then you get on the query that you typed</p>
+                
+                                    <div class="add-notes-card-bottom">
+                                        <p class="add-notes-card-category" style="background-color:${item.color}">${item.categoryName}</p>
+                                        <p class="add-notes-card-time">${convertDateTimeToDDMMYYYY(item.date)}</p>
+                                    </div>
+                                </div> `
+
+            })
+        })
+}
+shawCard();
+
+const createdCard = (e:HTMLElement) => {
+    console.log(e.style.border = "2px solid blue");
+    e.style.border = "2px solid blue";
+   
+}
+
+// document.addEventListener('DOMContentLoaded', () => {
+// const addedNotes:any = document.getElementById('addedNotes');
+
+function handleDragStart(event:any) {
+    event.dataTransfer.setData('text/plain', event.target.id);
+    event.target.classList.add('dragging');
+}
+
+function handleDragOver(event:any) {
+    event.preventDefault();
+    const draggingElement = document.querySelector('.dragging');
+    const targetElement = event.target.closest('.add-notes-card');
+
+    if (targetElement && targetElement !== draggingElement) {
+        const bounding = targetElement.getBoundingClientRect();
+        const offset = bounding.y + bounding.height / 2;
+
+        // if (event.clientY - offset > 0) {
+        //     targetElement.style['border-bottom'] = 'solid 4px blue';
+        //     targetElement.style['border-top'] = '';
+        // } else {
+        //     targetElement.style['border-top'] = 'solid 4px blue';
+        //     targetElement.style['border-bottom'] = '';
+        // }
+    }
+}
+
+function handleDragLeave(event:any) {
+    const targetElement = event.target.closest('.add-notes-card');
+    // targetElement.style['border-bottom'] = '';
+    // targetElement.style['border-top'] = '';
+}
+
+function handleDrop(event:any) {
+    event.preventDefault();
+    const draggingElement = document.querySelector('.dragging');
+    const targetElement = event.target.closest('.add-notes-card');
+
+    if (targetElement && targetElement !== draggingElement) {
+        const bounding = targetElement.getBoundingClientRect();
+        const offset = bounding.y + bounding.height / 2;
+
+        if (event.clientY - offset > 0) {
+            // targetElement.style['border-bottom'] = '';
+            if(addedNotes && draggingElement)
+            addedNotes.insertBefore(draggingElement, targetElement.nextSibling);
+        } else {
+            // targetElement.style['border-top'] = '';
+            if(addedNotes && draggingElement)
+            addedNotes.insertBefore(draggingElement, targetElement);
+        }
+    }
+    if(draggingElement)
+    draggingElement.classList.remove('dragging');
+}
+if(addedNotes){
+addedNotes.addEventListener('dragstart', handleDragStart);
+addedNotes.addEventListener('dragover', handleDragOver);
+addedNotes.addEventListener('dragleave', handleDragLeave);
+addedNotes.addEventListener('drop', handleDrop);
+};
+
+
+////////////////////////////////////////////////////
+
+ let sendData = getUserFromLocalStorage();          
+                
+                const list = {
+                    categoryName: listName?.innerText,
+                    id: new Date().getTime()
+                };
+                const findData = sendData.find((item:CategoryListData) => item.categoryName === listName.innerText);
+                if (!findData) {
+                    sendData.push(list);
+                    localStorage.setItem('sendData', JSON.stringify(sendData));
+                    console.log(sendData);
+
+                    if (listError) {
+                        listError.innerHTML = '';
+                    }
+                } else {
+                    if (listError) {
+                        listError.innerHTML = 'Category name already exists!';
+                    }
+                }
+
+/////////////////////////////////////////////////////////////////////////
+
+
+
+function handleDragStart(event: any) {
+    event.dataTransfer.setData('text/plain', event.target.id);
+    event.target.classList.add('dragging');
+}
+
+function handleDragOver(event: any) {
+    event.preventDefault();
+    const draggingElement = document.querySelector('.dragging');
+    const targetElement = event.target.closest('.add-notes-card');
+
+    // if (targetElement && targetElement !== draggingElement) {
+    //     const bounding = targetElement.getBoundingClientRect();
+    //     const offset = bounding.y + bounding.height / 2;
+
+    //     // if (event.clientY - offset > 0) {
+    //     //     targetElement.style['border-bottom'] = 'solid 4px blue';
+    //     //     targetElement.style['border-top'] = '';
+    //     // } else {
+    //     //     targetElement.style['border-top'] = 'solid 4px blue';
+    //     //     targetElement.style['border-bottom'] = '';
+    //     // }
+    // }
+}
+
+function handleDragLeave(event: any) {
+    // const targetElement = event.target.closest('.add-notes-card');
+    // targetElement.style['border-bottom'] = '';
+    // targetElement.style['border-top'] = '';
+}
+
+function handleDrop(event: any) {
+    event.preventDefault();
+    const draggingElement = document.querySelector('.dragging');
+    const targetElement = event.target.closest('.add-notes-card');
+
+    if (targetElement && targetElement !== draggingElement) {
+        const bounding = targetElement.getBoundingClientRect();
+        const offset = bounding.y + bounding.height / 2;
+
+        if (event.clientY - offset > 0) {
+            // targetElement.style['border-bottom'] = '';
+            if (addedNotes && draggingElement)
+                addedNotes.insertBefore(draggingElement, targetElement.nextSibling);
+        } else {
+            // targetElement.style['border-top'] = '';
+            if (addedNotes && draggingElement)
+                addedNotes.insertBefore(draggingElement, targetElement);
+        }
+    }
+    if (draggingElement)
+        draggingElement.classList.remove('dragging');
+}
+if (addedNotes) {
+    addedNotes.addEventListener('dragstart', handleDragStart);
+    addedNotes.addEventListener('dragover', handleDragOver);
+    addedNotes.addEventListener('dragleave', handleDragLeave);
+    addedNotes.addEventListener('drop', handleDrop);
+};
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+const addedList = document.getElementById('addedList') as HTMLElement | null
+const addCardCategorySection = document.getElementById('addCardCategorySection') as HTMLElement | null
+const createdNotes = document.getElementById('createdNotes') as HTMLElement | null
+const listError = document.getElementById('listError') as HTMLElement | null
+const addListInput = document.getElementById('addListInput') as HTMLInputElement | null
+const addedNotes = document.getElementById('addedNotes') as HTMLInputElement | null
+
+interface CategoryListData {
+    categoryName: string,
+    id: number,
+}
+
+interface CreateCategoryCard {
+    categoryName: string,
+    id: number,
+    color: string,
+    date: number,
+    heading?: string,
+    notes?: string
+}
+
+const date: Date = new Date();
+let findIndexCardData;
+
+function convertDateTimeToDDMMYYYY(dateTime: any): string {
+    const date: Date = new Date(dateTime);
+    // const dates = new Date();
+    const today = new Date();
+    const hours: number = date.getHours();
+    const minutes: number = date.getMinutes();
+    const formattedHours: string = hours.toString();
+    const formattedMinutes: string = minutes.toString();
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+        return `Today ${formattedHours}:${formattedMinutes}`;
+    } else if (date.toDateString() === yesterday.toDateString()) {
+        return `Yesterday ${formattedHours}:${formattedMinutes}`;
+    } else {
+        const dd: string = String(date.getDate());
+        const mm: string = String(date.getMonth() + 1);
+        return `${dd}/${mm}`;
+    }
+}
+
+function getRandomColor(): string {
+    const letters: string = "0123456789ABCDEF";
+    let color: string = "#";
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
+let categoryData: CategoryListData[];
+const getCategoryData = (): CategoryListData[] => {
+    let data = localStorage.getItem('sendData');
+    return categoryData = data ? JSON.parse(data) : [];
+};
+
+let cardData: CreateCategoryCard[];
+const getCategoryCardData = (): CreateCategoryCard[] => {
+    let data = localStorage.getItem('cardData');
+    return cardData = data ? JSON.parse(data) : [];
+}
+
+
+
+const addList = (e: HTMLElement): void => {
+    if (addListInput) {
+        if (addListInput.value.trim()) {
+            if (addedList) {
+                addedList.innerHTML = `
+                  <div class="added-list">
+                      <p class="added-list-name" id="listName">${addListInput.value}<button class="added-list-remove-btn" onclick='addListRemove(this)'><i class="fa-solid fa-xmark"></i></button></p>
+                  </div> `
+            }
+        }
+    }
+}
+
+const addListRemove = (e: HTMLElement): void => {
+    const rmvBtn = e.parentElement as HTMLElement
+    rmvBtn.parentElement?.remove()
+}
+
+const confirmList = (): void => {
+    const listName = document.getElementById('listName') as HTMLElement | null;
+    if (addListInput)
+        if (!addListInput.value.trim() && !listName?.innerText) {
+            if (listError) {
+                listError.innerHTML = 'Please Enter the category list';
+            }
+        } else {
+            if (listName?.innerText) {
+                const list: CategoryListData = {
+                    categoryName: listName?.innerText,
+                    id: date.getTime()
+                }
+                let categoryData: CategoryListData[] = getCategoryData();
+                const findData = categoryData.find((item: CategoryListData) => item.categoryName === listName.innerText);
+                if (findData) {
+                    if (listError)
+                        listError.innerHTML = 'Category name already exist!';
+                } else {
+                    categoryData.push(list)
+                    localStorage.setItem('sendData', JSON.stringify(categoryData));
+                    addListInput.value = "";
+                    if (listError)
+                        listError.innerHTML = '';
+                }
+            }
+            if (listError) {
+                listError.innerHTML = '';
+            }
+        }
+    addCategoryList();
+    addCategoryOption();
+}
+
+//***************************************************** */
+// const addNotes = (): void => {
+//     if (createdNotes) {
+//         createdNotes.innerHTML = `
+//         <div class="notes-headers-section" id=${date.getTime()}>
+//             <div class="notes-category-section">
+//                 <label for="categoryList" class="notes-category-label">#</label>
+//                 <select name="categoryList" id="categoryList" class="notes-category-name" onchange="createNoteCard(this, ${date.getTime()})">
+//                     <option hidden></option>
+//                 </select>
+//                 <div class="notes-time-section">
+//                     <p class="note-time">hello welcome</p>
+//                     <p class="note-time" id="notesCreateTime"></p>
+//                 </div>
+//             </div>
+//         </div>
+
+//             <div class="notes-details-section">
+//                 <input type="text" class="notes-heading-input-section" oninput="firstCreateCardHeading(this)" placeholder="Add your notes heading here.">
+//                 <div class="notes-details">
+//                     <textarea id="textArea" class="notes-information" oninput="firstCreateCardNote(this)" placeholder="Add your notes here."></textarea>
+//                 </div>
+//             </div> `
+//     }
+//     addCategoryOption();
+// }
+//***************************************************** */
+
+
+let noteData: any;
+
+const addNotes = (): void => {
+    const createdNotes = document.getElementById('createdNotes');
+    const date = new Date();
+    if (createdNotes) {
+        createdNotes.innerHTML = `
+        <div class="notes-headers-section" id="${date.getTime()}">
+            <div class="notes-category-section">
+                <label for="categoryList" class="notes-category-label">#</label>
+                <select name="categoryList" id="categoryList" class="notes-category-name" onchange="createNoteCard(this, ${date.getTime()})">
+                    <option hidden></option>
+                </select>
+                <div class="notes-time-section">
+                    <p class="note-time">hello welcome</p>
+                    <p class="note-time" id="notesCreateTime"></p>
+                </div>
+            </div>
+        </div>
+        <div class="notes-details-section">
+            <input type="text" class="notes-heading-input-section" oninput="firstCreateCardHeading(this)" placeholder="Add your notes heading here.">
+            <div class="notes-details">
+                <div id="editor"></div>
+            </div>
+        </div>`;
+
+        const quill = new Quill('#editor', {
+            theme: 'snow'
+        });
+
+        quill.on('text-change', function () {
+            firstCreateCardNote();
+        });
+
+        addCategoryOption();
+    }
+}
+
+
+
+
+const addCategoryList = (): void => {
+    let categoryData: CategoryListData[] = getCategoryData();
+    if (addCardCategorySection) {
+        addCardCategorySection.innerHTML = "";
+        categoryData.map((value: CategoryListData) => {
+            addCardCategorySection.innerHTML += `
+            <div class="add-card-category">
+                <p class="add-card-category-name"># ${value.categoryName}</p>
+                <p class="add-card-category-count"></p>
+            </div> `
+        })
+    }
+}
+addCategoryList();
+
+
+const addCategoryOption = (): void => {
+    const categoryList = document.getElementById('categoryList') as HTMLElement | null;
+    let categoryData: CategoryListData[] = getCategoryData();
+
+    if (categoryList) {
+        categoryData.map((value: CategoryListData) => {
+            categoryList.innerHTML += `<option>${value.categoryName}</option>`
+        })
+    }
+}
+addCategoryOption();
+
+
+
+const createNoteCard = (e: HTMLElement) => {
+    const date = new Date();
+    const notesCreateTime = document.getElementById('notesCreateTime') as HTMLElement | null;
+    const list: CreateCategoryCard = {
+        categoryName: (e as HTMLInputElement).value,
+        id: date.getTime(),
+        color: getRandomColor(),
+        date: date.getTime(),
+    }
+    let categoryCardData = getCategoryCardData();
+    categoryCardData.push(list)
+    localStorage.setItem('cardData', JSON.stringify(categoryCardData));
+
+    (e as HTMLElement).setAttribute("disabled", "disabled");
+    (notesCreateTime) ? notesCreateTime.innerText = convertDateTimeToDDMMYYYY(date.getTime()) : "";
+    shawCard();
+}
+
+
+const firstCreateCardHeading = (e: HTMLInputElement) => {
+    const categoryList = document.getElementById("categoryList") as HTMLSelectElement | null;
+    let categoryCardData: CreateCategoryCard[] = getCategoryCardData();
+    if (categoryList?.value) {
+        findIndexCardData = categoryCardData.length - 1;
+        categoryCardData[findIndexCardData].heading = e.value;
+        localStorage.setItem('cardData', JSON.stringify(categoryCardData));
+        shawCard();
+    }
+}
+//*********************************************** */
+// const firstCreateCardNote = (e: HTMLInputElement) => {
+//     const categoryList = document.getElementById("categoryList") as HTMLSelectElement | null;
+//     let categoryCardData: CreateCategoryCard[] = getCategoryCardData();
+//     if (categoryList?.value) {
+//         findIndexCardData = categoryCardData.length - 1;
+//         categoryCardData[findIndexCardData].notes = e.value;
+//         localStorage.setItem('cardData', JSON.stringify(categoryCardData));
+//         shawCard();
+//     }
+// }
+//*********************************************** */
+
+const firstCreateCardNote = (): void => {
+    const editor = document.querySelector('#editor .ql-editor');
+    if (editor) {
+        const categoryList = document.getElementById("categoryList") as HTMLSelectElement | null;
+        let categoryCardData: CreateCategoryCard[] = getCategoryCardData();
+        if (categoryList?.value) {
+            const findIndexCardData = categoryCardData.length - 1;
+            categoryCardData[findIndexCardData].notes = editor.innerHTML;
+            localStorage.setItem('cardData', JSON.stringify(categoryCardData));
+            shawCard();
+        }
+    }
+}
+
+
+
+const shawCard = (): void => {
+    let categoryCardData: CreateCategoryCard[] = getCategoryCardData();
+    if (addedNotes)
+        addedNotes.innerHTML = ""
+    categoryCardData.map((item: CreateCategoryCard) => {
+        if (addedNotes)
+            addedNotes.innerHTML += `
+                        <div class="add-notes-card" id="${item.id}" onclick="createdCard(this)" draggable="true">
+                            <h5 class="add-notes-card-heading">${item.heading ? item.heading : ""}</h5>
+                            <p class="add-notes-card-details"></p>
+        
+                            <div class="add-notes-card-bottom">
+                                <p class="add-notes-card-category" style="background-color:${item.color}">${item.categoryName}</p>
+                                <p class="add-notes-card-time">${convertDateTimeToDDMMYYYY(item.date)}</p>
+                            </div>
+                        </div> `
+    });
+}
+shawCard();
+
+//*************************************************************** */
+
+// declare const CKEDITOR: any;
+
+// const cardNote = (category: string, date: string, heading: string, notes: string) => {
+//     const createdNotes = document.getElementById('createdNotes');
+//     if (createdNotes) {
+//         createdNotes.innerHTML = `
+//         <div class="notes-headers-section">
+//             <div class="notes-category-section">
+//                 <label for="categoryList" class="notes-category-label">#</label>
+//                 <select name="categoryList" id="categoryList" class="notes-category-name" disabled>
+//                     <option hidden>${category}</option>
+//                 </select>
+//                 <div class="notes-time-section">
+//                     <p class="note-time">hello welcome</p>
+//                     <p class="note-time" id="notesCreateTime">${convertDateTimeToDDMMYYYY(date)}</p>
+//                 </div>
+//                 </div>
+//             <button class="notes-delet-button" onclick="removeCard(this, ${date})"><i class="fa-solid fa-trash"></i></button>
+//         </div>
+
+//             <div class="notes-details-section">
+//                 <input type="text" oninput="cardHeading(this)" class="notes-heading-input-section"
+//                     placeholder="Add your notes heading here." value="${heading ? heading : ""}">
+//                 <div class="notes-details">
+//                     <textarea id="textArea"  onselect="myFunction(this)" class="notes-information" oninput="cardNoteDetails(this)" placeholder="Add your notes here.">${notes ? notes : ""}</textarea>
+//                 </div>
+//             </div> `
+//         // CKEDITOR.replace('textArea');
+//         // console.log(CKEDITOR.instances["textArea"].getData());
+//     }
+// }
+
+
+
+
+
+
+//*************************************************************** */
+
+
+const saveCategoryCardData = (data: CreateCategoryCard[]): void => {
+    localStorage.setItem('cardData', JSON.stringify(data));
+}
+
+
+const cardNote = (category: string, date: string, heading: string, notes: string) => {
+    const createdNotes = document.getElementById('createdNotes');
+    if (createdNotes) {
+        createdNotes.innerHTML = `
+        <div class="notes-headers-section">
+            <div class="notes-category-section">
+                <label for="categoryList" class="notes-category-label">#</label>
+                <select name="categoryList" id="categoryList" class="notes-category-name" disabled>
+                    <option hidden>${category}</option>
+                </select>
+                <div class="notes-time-section">
+                    <p class="note-time">hello welcome</p>
+                    <p class="note-time" id="notesCreateTime">${convertDateTimeToDDMMYYYY(date)}</p>
+                </div>
+                </div>
+            <button class="notes-delet-button" onclick="removeCard(this, '${date}')"><i class="fa-solid fa-trash"></i></button>
+        </div>
+
+        <div class="notes-details-section">
+            <input type="text" oninput="cardHeading(this)" class="notes-heading-input-section"
+                placeholder="Add your notes heading here." value="${heading ? heading : ""}">
+            <div class="notes-details">
+                <div id="editorNote"></div>
+            </div>
+        </div>`;
+
+        const quill = new Quill('#editorNote', {
+            theme: 'snow'
+        });
+
+        quill.root.innerHTML = notes ? notes : "";
+
+        quill.on('text-change', function () {
+            cardNoteDetails(quill);
+        });
+    }
+}
+
+
+let cardId: number | string;
+let activeDateButton: HTMLElement | null = null;
+const createdCard = (e: HTMLElement) => {
+    if (activeDateButton) {
+        activeDateButton.classList.remove('active-date-btn');
+    }
+    e.classList.add('active-date-btn');
+    activeDateButton = e;
+
+    let categoryCardData: CreateCategoryCard[] = getCategoryCardData();
+    let findCardData: CreateCategoryCard[] | any = categoryCardData.find((x: CreateCategoryCard) => x.id === parseInt(e.id));
+    cardId = findCardData.id
+    console.log(findCardData.notes);
+    cardNote(findCardData.categoryName, findCardData.date, findCardData.heading, findCardData.notes);
+};
+
+
+const addNotesCards = document.querySelectorAll('.add-notes-card');
+addNotesCards.forEach(card => {
+    card.addEventListener('click', () => createdCard(card as HTMLElement));
+});
+
+
+const removeCard = (e: HTMLElement, id: number) => {
+    const confirmed: boolean = confirm("Are you sure you want to delete this note?");
+    if (confirmed) {
+        if (createdNotes)
+            createdNotes.innerHTML = "";
+        let categoryCardData: CreateCategoryCard[] = getCategoryCardData();
+        findIndexCardData = categoryCardData.findIndex((x: CreateCategoryCard) => x.id === id);
+        categoryCardData.splice(findIndexCardData, 1)
+        localStorage.setItem('cardData', JSON.stringify(categoryCardData));
+        shawCard();
+    }
+}
+
+const cardHeading = (e: HTMLInputElement) => {
+    let categoryCardData: CreateCategoryCard[] = getCategoryCardData();
+    findIndexCardData = categoryCardData.findIndex((x: CreateCategoryCard) => x.id === cardId);
+    categoryCardData[findIndexCardData].heading = e.value;
+    localStorage.setItem('cardData', JSON.stringify(categoryCardData));
+    shawCard();
+}
+
+//*************************************************************** */
+// const cardNoteDetails = (e: HTMLInputElement) => {
+//     let categoryCardData: CreateCategoryCard[] = getCategoryCardData();
+//     findIndexCardData = categoryCardData.findIndex((x: CreateCategoryCard) => x.id === cardId);
+//     categoryCardData[findIndexCardData].notes = e.value;
+//     localStorage.setItem('cardData', JSON.stringify(categoryCardData));
+//     shawCard();
+// }
+//*************************************************************** */
+
+const cardNoteDetails = (quill: any) => {
+    let categoryCardData: CreateCategoryCard[] = getCategoryCardData();
+    const findIndexCardData = categoryCardData.findIndex((x: CreateCategoryCard) => x.id === cardId);
+    if (findIndexCardData !== -1) {
+        categoryCardData[findIndexCardData].notes = quill.root.innerHTML;
+        saveCategoryCardData(categoryCardData);
+        shawCard();
+    }
+}
+
+
+const searchCard = (): void => {
+    const input = document.getElementById('searchInput') as HTMLInputElement | null;
+    const searchValue: string = input?.value.toLowerCase() || '';
+    const cardHeadings = document.getElementsByClassName('add-notes-card-heading');
+    for (let i = 0; i < cardHeadings.length; i++) {
+        const cardHeading = cardHeadings[i] as HTMLElement;
+        const card = cardHeading.closest('.add-notes-card') as HTMLElement;
+
+        if (card) {
+            if (!cardHeading.innerHTML.toLowerCase().includes(searchValue)) {
+                card.style.display = "none";
+            } else {
+                card.style.display = "block";
+            }
+        }
+    }
+}
+
+
+
+
+
+// function handleDragStart(event: any) {
+//     event.dataTransfer.setData('text/plain', event.target.id);
+//     event.target.classList.add('dragging');
+// }
+
+// function handleDragOver(event: any) {
+//     event.preventDefault();
+// }
+
+// function handleDrop(event: any) {
+//     event.preventDefault();
+//     const draggingElement = document.querySelector('.dragging');
+//     const targetElement = event.target.closest('.add-notes-card');
+
+
+//     if (targetElement && targetElement !== draggingElement) {
+//         const bounding = targetElement.getBoundingClientRect();
+//         const offset = bounding.y + bounding.height / 2;
+
+//         if (event.clientY - offset > 0) {
+//             if (addedNotes && draggingElement)
+//                 addedNotes.insertBefore(draggingElement, targetElement.nextSibling);
+//         } else {
+//             if (addedNotes && draggingElement)
+//                 addedNotes.insertBefore(draggingElement, targetElement);
+//         }
+//     }
+
+//     if (draggingElement)
+//         draggingElement.classList.remove('dragging');
+// }
+
+
+// if (addedNotes) {
+//     addedNotes.addEventListener('dragstart', handleDragStart);
+//     addedNotes.addEventListener('dragover', handleDragOver);
+//     addedNotes.addEventListener('drop', handleDrop);
+// };
+
+
+function handleDragStart(event: DragEvent): void {
+    if (event.target instanceof HTMLElement) {
+        event.dataTransfer?.setData('text/plain', event.target.id);
+        event.target.classList.add('dragging');
+    }
+}
+
+function handleDragOver(event: DragEvent): void {
+    event.preventDefault();
+}
+
+function handleDrop(event: DragEvent): void {
+    event.preventDefault();
+    const draggingElement = document.querySelector('.dragging') as HTMLElement | null;
+    const targetElement = (event.target as HTMLElement).closest('.add-notes-card') as HTMLElement | null;
+    const addedNotes = document.getElementById('addedNotes') as HTMLElement | null;
+
+    if (targetElement && draggingElement && addedNotes && targetElement !== draggingElement) {
+        const bounding = targetElement.getBoundingClientRect();
+        const offset = bounding.y + bounding.height / 2;
+
+        if (event.clientY - offset > 0) {
+            addedNotes.insertBefore(draggingElement, targetElement.nextSibling);
+        } else {
+            addedNotes.insertBefore(draggingElement, targetElement);
+        }
+    }
+
+    if (draggingElement) {
+        draggingElement.classList.remove('dragging');
+    }
+}
+
+if (addedNotes) {
+    addedNotes.addEventListener('dragstart', handleDragStart);
+    addedNotes.addEventListener('dragover', handleDragOver);
+    addedNotes.addEventListener('drop', handleDrop);
+}
+
+
+
+

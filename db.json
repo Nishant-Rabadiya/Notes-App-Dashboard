@@ -1,0 +1,52 @@
+{
+  "categoryList": [
+    {
+      "id": "4081",
+      "categoryName": "test"
+    },
+    {
+      "id": "bd28",
+      "categoryName": "test2"
+    },
+    {
+      "id": "5886",
+      "categoryName": "test3"
+    },
+    {
+      "id": "00a2",
+      "categoryName": "test4"
+    }
+  ],
+  "createdCard": [
+    {
+      "id": "abcf",
+      "categoryName": "test",
+      "color": "#CC74C5",
+      "date": 1718000040027
+    },
+    {
+      "id": "fa02",
+      "categoryName": "test3",
+      "color": "#CDEA9C",
+      "date": 1718009222845
+    },
+    {
+      "id": "2597",
+      "categoryName": "test2",
+      "color": "#E861CB",
+      "date": 1718013280032
+    },
+    {
+      "id": "faee",
+      "categoryName": "test",
+      "color": "#314693",
+      "date": 1718021506561
+    },
+    {
+      "id": "006b",
+      "categoryName": "test3",
+      "color": "#364355",
+      "date": 1718080955006
+    }
+  ]
+}
